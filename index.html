@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seat Availability</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #343a40;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            text-align: center; /* Center-align text */
+        }
+        h1 {
+            font-size: 4em;
+            margin: 20px 0;
+            color: #007bff;
+        }
+        .branch {
+            display: none;
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 1200px;
+            max-height: 80vh;
+        }
+        .branch h2 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            color: #007bff;
+        }
+        .branch h3 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            color: #28a745;
+        }
+        .category-container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+        }
+        .category {
+            margin: 10px;
+            padding: 20px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 22%;
+            display: inline-block;
+            vertical-align: top;
+            backface-visibility: hidden;
+            transform: perspective(1000px) rotateY(0deg);
+            transition: transform 1s;
+        }
+        .category.flip {
+            transform: perspective(1000px) rotateY(180deg);
+        }
+        .category h1 {
+            font-size: 2em;
+            margin: 0;
+            color: #17a2b8;
+        }
+        .category h2 {
+            font-size: 1.5em;
+            margin: 10px 0 0 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Seat Availability</h1>
+    <div id="seat-availability"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/api/seats/')
+                .then(response => response.json())
+                .then(data => {
+                    const branches = Object.keys(data);
+                    let currentBranchIndex = 0;
+                    let currentCategoryIndex = 0;
+                    const categoriesPerSet = 4;
+                    const displayDuration = 7500;  // 7500 milliseconds = 7.5 seconds
+                    const container = document.getElementById('seat-availability');
+
+                    const calculateTotalSeats = (categories) => {
+                        return categories.reduce((total, category) => total + category.availability, 0);
+                    };
+
+                    const displayCategorySet = () => {
+                        const branch = branches[currentBranchIndex];
+                        const categories = data[branch];
+                        const totalSeats = calculateTotalSeats(categories);
+
+                        let categorySetHTML = `<h2>${branch}</h2><h3>Total Seats: ${totalSeats}</h3><div class="category-container">`;
+
+                        for (let i = 0; i < categoriesPerSet; i++) {
+                            const category = categories[currentCategoryIndex];
+                            categorySetHTML += `<div class="category">
+                                                    <h1>${category.name}</h1>
+                                                    <h2>${category.availability} seats available</h2>
+                                                </div>`;
+                            currentCategoryIndex++;
+                            if (currentCategoryIndex >= categories.length) {
+                                currentCategoryIndex = 0;
+                                currentBranchIndex = (currentBranchIndex + 1) % branches.length;
+                                break;
+                            }
+                        }
+
+                        categorySetHTML += `</div>`;
+                        container.innerHTML = categorySetHTML;
+
+                        // Apply flip animation
+                        const categoriesDivs = container.querySelectorAll('.category');
+                        categoriesDivs.forEach(categoryDiv => {
+                            categoryDiv.classList.add('flip');
+                            setTimeout(() => {
+                                categoryDiv.classList.remove('flip');
+                            }, 500);  // Duration of flip animation
+                        });
+                    };
+
+                    // Display the first set of categories immediately
+                    displayCategorySet();
+
+                    // Set up interval to switch category sets every 7.5 seconds
+                    setInterval(displayCategorySet, displayDuration);
+                });
+        });
+    </script>
+</body>
+</html>
